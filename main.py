@@ -39,8 +39,8 @@ class project_mgr():
 				self.git = git_mgr(path=self.settings['project_path'])
 			else:
 				self.git = git_mgr(url=self.url)
-		self.logger = logger(logfile=self.logfile, verbose=self.debug)
-		self.log = self.logger.log_msg
+		#self.logger = logger(logfile=self.logfile, verbose=self.debug)
+		#self.log = self.logger.log_msg
 		self.editor = self.set_editor(editor_name=self.editor_name, cwd=self.project_path)
 		self.files = self.get_files()
 
