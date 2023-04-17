@@ -90,9 +90,10 @@ class project_mgr():
 		return self.editor
 
 	def _add_existing_repo(self, path):
+		print("Adding existing repo at:", path)
 		self.project_path = path
 		self.settings = new_project()
-		print(self.settings)
+
 
 	def new(self, user=None, path=None, git_url=None):
 		if user is None:
