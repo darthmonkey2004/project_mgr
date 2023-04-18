@@ -48,6 +48,10 @@ def run(pm=None):
 		elif event == '-BTN_STATUS-':
 			print(pm.git._status())
 			pm.git.status()
+		elif event == '-BTN_MAIN_MENU-':
+			win.close()
+			pm = get_pm(auto_load=False)
+			win = win_project_master(pm)
 
 if __name__ == "__main__":
 	run()

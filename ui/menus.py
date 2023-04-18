@@ -53,6 +53,7 @@ def win_project_master(pm=None):
 	layout_obj.add(ui._element('Button', button_text='Save As...', key='-BTN_SAVE_AS-'))
 	layout_obj.add(ui._element('Button', button_text='Add File...', key='-BTN_ADD_FILE-'))
 	layout_obj.add(ui._element('Button', button_text='Quit!', key='-BTN_QUIT-'))
+	layout_obj.add(ui._element('Button', button_text='Main Menu', key='-BTN_MAIN_MENU-'))
 	layout_obj.push()
 	win = ui.child_window(layout_obj=layout_obj, title='Project: {pm.name}', run=False)
 	return win
