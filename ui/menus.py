@@ -2,8 +2,78 @@ import keyring
 from psg_creator.gui import *
 from psg_creator.classes import *
 from helper_utils.git import get_repositories
+from main import *
 ui = gui()
 default_project_dir = 'var/dev'
+
+
+def win_main_menu():
+	layout_obj = layout()
+	layout_obj.add(ui._element('Button', button_text='New Project', expand_x=True, expand_y=True, key='-BUTTON_NEW_PROJECT-'))
+	layout_obj.push()
+	layout_obj.add(ui._element('Button', button_text='Load Project...', expand_x=True, expand_y=True, key='-BUTTON_LOAD_PROJECT-'))
+	layout_obj.push()
+	layout_obj.add(ui._element('Button', button_text='Settings', expand_x=True, expand_y=True, key='-BUTTON_SETTINGS-'))
+	layout_obj.push()
+	
+	layout_obj.add(ui._element('Checkbox', text='Auto-Load Last Project', key='-AUTO_LOAD-'))
+	layout_obj.add(ui._element('Checkbox', text='Debug Mode (Verbose)', key='-DEBUG-'))
+	layout_obj.push()
+	win = ui.child_window(layout_obj=layout_obj, title='Project Manager: Main Menu', run=False)
+	return win
+
+def win_project_master(pm=None):
+	if pm is None:
+		pm = get_pm()
+	layout_obj = layout()
+	layout_obj.add(ui._element('Listbox', values=pm.files, key='-PROJECT_FILES'))
+	layout_obj.push()
+
+def win_settings(pm):
+	layout_obj = layout()
+	for k in pm.settings.keys():
+		v = pm.settings[k]
+		key = f"-{k.upper()}-"
+		layout_obj.add(ui._element('Input', default_text=v, key=key))
+		layout_obj.push()
+	win = ui.child_window(layout_obj=layout_obj, title=f"{pm.name} Settings", run=False)
+	return win
+
+def get_pm():
+	win = win_main_menu()
+	quit = False
+	debug = True
+	pm = None
+	while True:
+		event, values = win.read()
+		if event == sg.WIN_CLOSED or quit:
+			if not win.was_closed():
+				win.close()
+			break
+		elif event == '-BUTTON_NEW_PROJECT-':
+			data = new_project()
+			name = data['name']
+			project_path = data['project_path']
+			default_project_dir = data['default_project_dir']
+			url = data['url']
+			email = data['email']
+			user = data['user']
+			token = data['token']
+			pm = project_mgr(debug=debug, editor_name='idle', project_path=project_path, default_project_dir=default_project_dir, git_url=url)
+			break
+		elif event == '-BUTTON_LOAD_PROJECT-':
+			project_path = ui.file_browser(browse_type='folder', cwd='/var/dev/')
+			pm = project_mgr(debug=debug, editor_name='idle', project_path=project_path)
+			break
+		elif event == '-BUTTON_SETTINGS-':
+			pass
+		elif event == '-AUTO_LOAD-':
+			pass
+		elif event == '-DEBUG-':
+			pass
+	if not win.was_closed():
+		win.close()
+	return pm
 
 def get_token(email):
 	try:
@@ -22,7 +92,7 @@ def browse_new_repo():
 	if ret != '':
 		print("Error openin browser:", ret)
 
-def get_win():
+def win_new_project():
 	layout_obj = layout()
 	layout_obj.add(ui._element('Listbox', values=[], expand_x=True, expand_y=True, key='-LISTBOX_REPOS-'))
 	layout_obj.push()
@@ -59,7 +129,20 @@ def get_win():
 	return win
 
 def new_project(name=None, project_path=None, default_project_dir='/var/dev', url=None, email=None, user=None, token=None):
-	win = get_win()
+	win = win_new_project()
+	if project_path is not None:
+		win['-INPUT_PROJECT_PATH-'].update(project_path)
+	if name is not None:
+		name = name.replace('_', ' ').title()
+		win['-NAME-'].update(name)
+	if default_project_dir is not None:
+		win['-INPUT_PROJECT_PATH-'].update(default_project_dir)
+	if url is not None:
+		win['-URL-'].update(url)
+	if user is not None:
+		win['-USERNAME-'].update(user)
+	if email is not None:
+		win['-EMAIL-'].update(email)
 	while True:
 		event, values = win.read()
 		print(event)
@@ -75,14 +158,14 @@ def new_project(name=None, project_path=None, default_project_dir='/var/dev', ur
 			url = values[event]
 			try:
 				user = url.split('com/')[1].split('/')[0]
-				name = url.split(f"{user}/")[1].split('.')[0]
+				name = url.split(f"{user}/")[1].split('.')[0].replace('_', ' ').title()
 				win['-USERNAME-'].update(user)
 				win['-NAME-'].update(name)
 			except:
 				pass
 			print("Repository url set:", url)
 		elif event == '-NAME-':
-			name = values[event]
+			name = values[event].replace(' ', '_').lower()
 			project_path = os.path.join(default_project_dir, name)
 			if user is None:
 				try:
@@ -138,6 +221,3 @@ def new_project(name=None, project_path=None, default_project_dir='/var/dev', ur
 		elif event == '-CANCEL-':
 			win.close()
 			return {}
-
-if __name__ == "__main__":
-	new_project()	

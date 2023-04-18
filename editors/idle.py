@@ -8,7 +8,7 @@ class idle():
 		else:
 			self.cwd = cwd
 		if startup_file is None:
-			startup_file = os.path.join(os.path.expanduser("~"), 'project_mgr_config.py')
+			startup_file = os.path.join(os.getcwd(), 'project_mgr_config.py')
 			
 		self.startup_file = startup_file
 		self.com = None
@@ -27,8 +27,11 @@ class idle():
 			else:
 				files = []
 		if len(files) > 0:
-			files = "' '".join(f"'{files}'")
-			self.com = f"idle -e \"{files}\""
+			fl = []
+			for filepath in files:
+				fl.append(f"'{filepath}'")
+			files = " ".join(fl)
+			self.com = f"idle -e {files}"
 		else:
 			self.com = "idle -e"
 		self.com = f"{self.com}&"

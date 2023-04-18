@@ -3,14 +3,14 @@ import subprocess
 from helper_utils.git import *
 from editors.idle import *
 from helper_utils.log import logger
-from new_project import *
 from helper_utils.filesystem import *
 logfile = os.path.join(os.path.expanduser("~"), '.project_manager', 'log.txt')
 #log = logger().log_msg
 log = logger.log_msg
 
 class project_mgr():
-	def __init__(self, new=False, editor_name='idle', project_path=None, debug=False, default_project_dir='/var/dev', git_url=None):
+	def __init__(self, new=False, editor_name='idle', project_path=None, debug=False, default_project_dir='/var/dev', git_url=None, auto_load_last=True):
+		self.auto_load_last = auto_load_last
 		self.data_dir = os.path.join(os.path.expanduser("~"), '.project_manager')
 		self.url = git_url
 		self.default_project_dir = default_project_dir
@@ -20,12 +20,22 @@ class project_mgr():
 		self.log = log
 		self.editor_name = editor_name
 		self.files = []
-		self.settings_file = os.path.join(self.data_dir, 'settings.dat')
-		if os.path.exists(self.settings_file):
-			self.settings = self.load_settings()
-		self._init()
+		self.settings_file = os.path.join(self.project_path, 'settings.dat')
+		self.ignore = ['__init__', '.git', 'README']
+		if new:
+			self.new(path=self.project_path, git_url=self.url)
+			self.save_settings()
+		else:
+			if os.path.exists(self.settings_file):
+				self.settings = self.load_settings()
+				self._init()
+			else:
+				self._init()
+				self.save_settings()
 
-	def _init(self):
+	def _init(self, path=None):
+		if path is not None:
+			self.project_path = path
 		self.fs = filesystem(cwd=self.project_path)
 		if self.project_path is None:
 			projects = self.fs.find(path=self.default_project_dir)
@@ -43,6 +53,7 @@ class project_mgr():
 		#self.log = self.logger.log_msg
 		self.editor = self.set_editor(editor_name=self.editor_name, cwd=self.project_path)
 		self.files = self.get_files()
+		self.name = self.git.name.replace('_', ' ').title()
 
 	def load_settings(self):
 		with open(self.settings_file, 'rb') as f:
@@ -54,7 +65,9 @@ class project_mgr():
 		return self.settings
 
 	def save_settings(self, settings=None):
-		if settings is None:
+		if settings is not None:
+			self.settings = settings
+		elif settings is None:
 			settings = {}
 			settings['url'] = self.url
 			settings['default_project_dir'] = self.default_project_dir
@@ -64,7 +77,10 @@ class project_mgr():
 			settings['logfile'] = self.logfile
 			settings['editor_name'] = self.editor_name
 			settings['files'] = self.files
+			settings['auto_load_last'] = True
 			self.settings = settings
+		if settings['url'] is None:
+			settings['url'] = self.git.url
 		with open(self.settings_file, 'wb') as f:
 			pickle.dump(settings, f)
 			f.close()
@@ -73,7 +89,22 @@ class project_mgr():
 	def get_files(self, path=None):
 		if path is None:
 			path = self.project_path
-		return self.fs.find(path, pattern="*.py")
+		files = self.fs.find(path, pattern="*.py")
+		l = []
+		exc = []
+		for filepath in files:
+			for ignore in self.ignore:
+				if ignore not in filepath:
+					if filepath not in exc and filepath not in l:
+						l.append(filepath)
+				else:
+					exc.append(filepath)
+		if l != []:
+			self.files = l
+			return self.files
+		else:
+			raise Exception("Files list empty!")
+			
 
 	def set_editor(self, editor_name=None, cwd=None):
 		if cwd is not None:
@@ -96,6 +127,7 @@ class project_mgr():
 
 
 	def new(self, user=None, path=None, git_url=None):
+		self._init(path=path)
 		if user is None:
 			user = self.git.user
 		if path is None:
