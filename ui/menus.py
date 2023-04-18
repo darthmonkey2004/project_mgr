@@ -2,7 +2,7 @@ import keyring
 from psg_creator.gui import *
 from psg_creator.classes import *
 from helper_utils.git import get_repositories
-from main import *
+from pm import *
 ui = gui()
 default_project_dir = 'var/dev'
 
@@ -44,6 +44,8 @@ def win_project_master(pm=None):
 	layout_obj.add(ui._element('Listbox', expand_y=True, select_mode='multiple', values=pm.files, key='-PROJECT_FILES-'))
 	layout_obj.push()
 	layout_obj.add(ui._element('Button', button_text='Push', key='-BTN_PUSH-'))
+	layout_obj.add(ui._element('Button', button_text='Pull', key='-BTN_PULL-'))
+	layout_obj.add(ui._element('Button', button_text='Status', key='-BTN_STATUS-'))
 	layout_obj.add(ui._element('Button', button_text='Open in Editor', key='-BTN_EDIT-'))
 	layout_obj.add(ui._element('Button', button_text='Select All', key='-BTN_SELECT_ALL-'))
 	layout_obj.add(ui._element('Button', button_text='Clear All', key='-BTN_CLEAR_ALL-'))
@@ -55,47 +57,6 @@ def win_project_master(pm=None):
 	win = ui.child_window(layout_obj=layout_obj, title='Project: {pm.name}', run=False)
 	return win
 
-def run(pm=None):
-	if pm is None:
-		pm = get_pm()
-	win = win_project_master(pm)
-	while True:
-		event, values = win.read()
-		if event == sg.WIN_CLOSED:
-			break
-		elif event == '-PROJECT_FILES-':
-			try:
-				selected_files = values[event]
-			except:
-				selected_files = []
-		elif event == '-BTN_EDIT-':
-			if selected_files != []:
-				pm.editor.editor(files=selected_files)
-			else:
-				log(f"ui.menus.run_project_master():Error - No files selected!", 'error')
-		elif event == '-BTN_SELECT_ALL-':
-			selected_files = select_all(win)
-		elif event == '-BTN_CLEAR_ALL-':
-			selected_files = clear_all(win)
-		elif event == '-BTN_SAVE-':
-			save_settings(pm)
-			log(f"ui.menus.run_project_master(): Settings saved! ({pm.settings_file})", 'info')
-		elif event == '-BTN_SAVE_AS-':
-			pm.settings_file = f"{ui.file_browser(cwd=pm.project_path, browse_type='folder')}/settings.dat"
-			pm.settings['settings_file'] = pm.settings_file
-			save_settings(pm)
-			log(f"ui.menus.run_project_master(): Settings saved! ({pm.settings_file})", 'info')
-		elif event == '-BTN_ADD_FILE-':
-			filepath = ui.file_browser(cwd=pm.project_path, browse_type='file')
-			add_file(pm=pm, filepath=filepath)
-			pm.files.append(filepath)
-			win['-PROJECT_FILES-'].update(pm.files)
-		elif event == '-BTN_QUIT-':
-			win.close()
-			break
-		elif event == '-BTN_PUSH-':
-			log(f"ui.menus.run_project_master():Pushing changes to repository ({pm.url})...", 'info')
-			pm.git.push()
 
 def win_settings(pm):
 	layout_obj = layout()
@@ -125,8 +86,9 @@ def get_pm(auto_load=True):
 	pm = None
 	if auto_load:
 		pm = load_project()
-		win.close()
-		return pm
+		if pm is not None:
+			win.close()
+			return pm
 	while True:
 		event, values = win.read()
 		if event == sg.WIN_CLOSED or quit:
@@ -161,16 +123,20 @@ def get_pm(auto_load=True):
 	return pm
 
 def load_project(debug=True):
-	settings_file = 'settings.dat'
-	data = None
-	if os.path.exists(settings_file):
-		with open(settings_file, 'rb') as f:
-			data = pickle.load(f)
-			f.close()
-	else:
-		log(f"menus.load_settings():Error - no settings file found ({settings_file})!", 'error')
-	pm = project_mgr(debug=debug, editor_name='idle', project_path=data['project_path'])
-	return pm
+	try:
+		settings_file = 'settings.dat'
+		data = None
+		if os.path.exists(settings_file):
+			with open(settings_file, 'rb') as f:
+				data = pickle.load(f)
+				f.close()
+		else:
+			log(f"menus.load_settings():Error - no settings file found ({settings_file})!", 'error')
+		pm = project_mgr(debug=debug, editor_name='idle', project_path=data['project_path'])
+		return pm
+	except Exception as e:
+		log(f"ui.menus.load_project():Error - {e}", 'error')
+		return None
 
 def save_settings(pm):
 	settings = pm.settings
