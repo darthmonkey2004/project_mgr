@@ -7,6 +7,22 @@ ui = gui()
 default_project_dir = 'var/dev'
 
 
+def select_all(win):
+	lb = win.Rows[0][0].Rows[0][0]
+	l = [i for i in range(0, len(lb.Values))]
+	s = l[0]
+	e = len(l)
+	lb.widget.selection_set(first=s, last=e)
+	return lb.Values
+
+def clear_all(win):
+	lb = win.Rows[0][0].Rows[0][0]
+	l = [i for i in range(0, len(lb.Values))]
+	s = l[0]
+	e = len(l)
+	lb.widget.selection_clear(first=s, last=e)
+	return []
+
 def win_main_menu():
 	layout_obj = layout()
 	layout_obj.add(ui._element('Button', button_text='New Project', expand_x=True, expand_y=True, key='-BUTTON_NEW_PROJECT-'))
@@ -15,7 +31,6 @@ def win_main_menu():
 	layout_obj.push()
 	layout_obj.add(ui._element('Button', button_text='Settings', expand_x=True, expand_y=True, key='-BUTTON_SETTINGS-'))
 	layout_obj.push()
-	
 	layout_obj.add(ui._element('Checkbox', text='Auto-Load Last Project', key='-AUTO_LOAD-'))
 	layout_obj.add(ui._element('Checkbox', text='Debug Mode (Verbose)', key='-DEBUG-'))
 	layout_obj.push()
@@ -26,8 +41,61 @@ def win_project_master(pm=None):
 	if pm is None:
 		pm = get_pm()
 	layout_obj = layout()
-	layout_obj.add(ui._element('Listbox', values=pm.files, key='-PROJECT_FILES'))
+	layout_obj.add(ui._element('Listbox', expand_y=True, select_mode='multiple', values=pm.files, key='-PROJECT_FILES-'))
 	layout_obj.push()
+	layout_obj.add(ui._element('Button', button_text='Push', key='-BTN_PUSH-'))
+	layout_obj.add(ui._element('Button', button_text='Open in Editor', key='-BTN_EDIT-'))
+	layout_obj.add(ui._element('Button', button_text='Select All', key='-BTN_SELECT_ALL-'))
+	layout_obj.add(ui._element('Button', button_text='Clear All', key='-BTN_CLEAR_ALL-'))
+	layout_obj.add(ui._element('Button', button_text='Save', key='-BTN_SAVE-'))
+	layout_obj.add(ui._element('Button', button_text='Save As...', key='-BTN_SAVE_AS-'))
+	layout_obj.add(ui._element('Button', button_text='Add File...', key='-BTN_ADD_FILE-'))
+	layout_obj.add(ui._element('Button', button_text='Quit!', key='-BTN_QUIT-'))
+	layout_obj.push()
+	win = ui.child_window(layout_obj=layout_obj, title='Project: {pm.name}', run=False)
+	return win
+
+def run(pm=None):
+	if pm is None:
+		pm = get_pm()
+	win = win_project_master(pm)
+	while True:
+		event, values = win.read()
+		if event == sg.WIN_CLOSED:
+			break
+		elif event == '-PROJECT_FILES-':
+			try:
+				selected_files = values[event]
+			except:
+				selected_files = []
+		elif event == '-BTN_EDIT-':
+			if selected_files != []:
+				pm.editor.editor(files=selected_files)
+			else:
+				log(f"ui.menus.run_project_master():Error - No files selected!", 'error')
+		elif event == '-BTN_SELECT_ALL-':
+			selected_files = select_all(win)
+		elif event == '-BTN_CLEAR_ALL-':
+			selected_files = clear_all(win)
+		elif event == '-BTN_SAVE-':
+			save_settings(pm)
+			log(f"ui.menus.run_project_master(): Settings saved! ({pm.settings_file})", 'info')
+		elif event == '-BTN_SAVE_AS-':
+			pm.settings_file = f"{ui.file_browser(cwd=pm.project_path, browse_type='folder')}/settings.dat"
+			pm.settings['settings_file'] = pm.settings_file
+			save_settings(pm)
+			log(f"ui.menus.run_project_master(): Settings saved! ({pm.settings_file})", 'info')
+		elif event == '-BTN_ADD_FILE-':
+			filepath = ui.file_browser(cwd=pm.project_path, browse_type='file')
+			add_file(pm=pm, filepath=filepath)
+			pm.files.append(filepath)
+			win['-PROJECT_FILES-'].update(pm.files)
+		elif event == '-BTN_QUIT-':
+			win.close()
+			break
+		elif event == '-BTN_PUSH-':
+			log(f"ui.menus.run_project_master():Pushing changes to repository ({pm.url})...", 'info')
+			pm.git.push()
 
 def win_settings(pm):
 	layout_obj = layout()
@@ -39,11 +107,26 @@ def win_settings(pm):
 	win = ui.child_window(layout_obj=layout_obj, title=f"{pm.name} Settings", run=False)
 	return win
 
-def get_pm():
+def add_file(pm, filepath):
+	if os.path.exists(filepath):
+		data = pm.fs.cat(filepath)
+		fname = os.path.basename(filepath)
+		newname = os.path.join(pm.project_path, fname)
+		pm.fs.write(data=data, filepath=newname)
+		log(f"ui.menus.add_file():Added file to project ({filepath} > {newname})!", 'info')
+	else:
+		log(f"ui.menus.add_file():Error - File doesn't exist ({filepath})!", 'error')
+
+
+def get_pm(auto_load=True):
 	win = win_main_menu()
 	quit = False
 	debug = True
 	pm = None
+	if auto_load:
+		pm = load_project()
+		win.close()
+		return pm
 	while True:
 		event, values = win.read()
 		if event == sg.WIN_CLOSED or quit:
@@ -68,12 +151,32 @@ def get_pm():
 		elif event == '-BUTTON_SETTINGS-':
 			pass
 		elif event == '-AUTO_LOAD-':
-			pass
+			pm = load_project()
+			log(f"Poject loaded: {pm.name}", 'info')
+			break
 		elif event == '-DEBUG-':
 			pass
 	if not win.was_closed():
 		win.close()
 	return pm
+
+def load_project(debug=True):
+	settings_file = 'settings.dat'
+	data = None
+	if os.path.exists(settings_file):
+		with open(settings_file, 'rb') as f:
+			data = pickle.load(f)
+			f.close()
+	else:
+		log(f"menus.load_settings():Error - no settings file found ({settings_file})!", 'error')
+	pm = project_mgr(debug=debug, editor_name='idle', project_path=data['project_path'])
+	return pm
+
+def save_settings(pm):
+	settings = pm.settings
+	with open(pm.settings_file, 'wb') as f:
+		pickle.dump(settings, f)
+		f.close()
 
 def get_token(email):
 	try:

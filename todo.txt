@@ -1,0 +1,55 @@
+Progress:
+	finished git.py class (needs bugtested extensively)
+
+functionality()
+#1. logger
+#	A. TODO: add origin file/module/function 'append' to string for origination of more than just exceptions
+#		(know where a log line comes from)
+2. backup
+	#A. tarball handling:
+	#	a. tar class
+	#		I. compress
+	#		II. extract
+	B. zip
+		a. ...
+		b. ...
+	C. set/create directory
+3. vars
+	A. GITDIR
+	B. INSTALL_DIR
+	C. BACKUP_DIR
+	D. TARFILE
+4. temp_file cleanup
+	A. __PYCACHE__
+	B. *.txt
+	C. user_defined_searchPattern()
+	D. 
+5. directory migration
+6. git push/config repo (git.py)
+
+-----------------------------
+
+gui for configuration of functionality
+
+To be continued...
+
+modules:
+#git.py
+#tar.py
+#zip.py(???)
+#log.py
+filesystem.py:
+	#1. copy
+	#2. mv
+	#3. rm
+	#4. ls
+	#5. mkdir
+	#6. touch
+	#7. write
+	#8. read
+	#9. find_all
+maintenance
+	1. junk removal
+	2. temp removal
+	3. backup management
+

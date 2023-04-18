@@ -89,7 +89,7 @@ class project_mgr():
 	def get_files(self, path=None):
 		if path is None:
 			path = self.project_path
-		files = self.fs.find(path, pattern="*.py")
+		files = self.fs.find(path=path, pattern=["*.py", "*todo*", "*TODO*"])
 		l = []
 		exc = []
 		for filepath in files:
@@ -168,4 +168,3 @@ class project_mgr():
 					self.log(txt, 'error')
 					raise Exception(txt)
 
-		

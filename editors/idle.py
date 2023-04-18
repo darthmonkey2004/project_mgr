@@ -39,6 +39,8 @@ class idle():
 
 
 	def shell(self, command=None, args=None, debug=False, script=None, include_environ=True, title='PMEditor - Idle'):
+		if debug is None:
+			debug = self.debug
 		if debug:
 			if self.include_environ:
 				self.com = f"idle -t \'{self.title}\' -s -d"
