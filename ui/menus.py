@@ -7,22 +7,6 @@ ui = gui()
 default_project_dir = 'var/dev'
 
 
-def select_all(win):
-	lb = win.Rows[0][0].Rows[0][0]
-	l = [i for i in range(0, len(lb.Values))]
-	s = l[0]
-	e = len(l)
-	lb.widget.selection_set(first=s, last=e)
-	return lb.Values
-
-def clear_all(win):
-	lb = win.Rows[0][0].Rows[0][0]
-	l = [i for i in range(0, len(lb.Values))]
-	s = l[0]
-	e = len(l)
-	lb.widget.selection_clear(first=s, last=e)
-	return []
-
 def win_main_menu():
 	layout_obj = layout()
 	layout_obj.add(ui._element('Button', button_text='New Project', expand_x=True, expand_y=True, key='-BUTTON_NEW_PROJECT-'))
@@ -36,28 +20,6 @@ def win_main_menu():
 	layout_obj.push()
 	win = ui.child_window(layout_obj=layout_obj, title='Project Manager: Main Menu', run=False)
 	return win
-
-def win_project_master(pm=None):
-	if pm is None:
-		pm = get_pm()
-	layout_obj = layout()
-	layout_obj.add(ui._element('Listbox', expand_y=True, select_mode='multiple', values=pm.files, key='-PROJECT_FILES-'))
-	layout_obj.push()
-	layout_obj.add(ui._element('Button', button_text='Push', key='-BTN_PUSH-'))
-	layout_obj.add(ui._element('Button', button_text='Pull', key='-BTN_PULL-'))
-	layout_obj.add(ui._element('Button', button_text='Status', key='-BTN_STATUS-'))
-	layout_obj.add(ui._element('Button', button_text='Open in Editor', key='-BTN_EDIT-'))
-	layout_obj.add(ui._element('Button', button_text='Select All', key='-BTN_SELECT_ALL-'))
-	layout_obj.add(ui._element('Button', button_text='Clear All', key='-BTN_CLEAR_ALL-'))
-	layout_obj.add(ui._element('Button', button_text='Save', key='-BTN_SAVE-'))
-	layout_obj.add(ui._element('Button', button_text='Save As...', key='-BTN_SAVE_AS-'))
-	layout_obj.add(ui._element('Button', button_text='Add File...', key='-BTN_ADD_FILE-'))
-	layout_obj.add(ui._element('Button', button_text='Quit!', key='-BTN_QUIT-'))
-	layout_obj.add(ui._element('Button', button_text='Main Menu', key='-BTN_MAIN_MENU-'))
-	layout_obj.push()
-	win = ui.child_window(layout_obj=layout_obj, title='Project: {pm.name}', run=False)
-	return win
-
 
 def win_settings(pm):
 	layout_obj = layout()

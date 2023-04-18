@@ -7,6 +7,7 @@ from helper_utils.log import logger
 from helper_utils.filesystem import *
 from psg_creator.classes import *
 from psg_creator.gui import *
+from helper_utils.tar import *
 logfile = os.path.join(os.path.expanduser("~"), '.project_manager', 'log.txt')
 #log = logger().log_msg
 log = logger.log_msg
@@ -58,15 +59,20 @@ def win_project_master(pm=None):
 	layout_obj.add(ui._element('Button', button_text='Open in Editor', key='-BTN_EDIT-'))
 	layout_obj.add(ui._element('Button', button_text='Select All', key='-BTN_SELECT_ALL-'))
 	layout_obj.add(ui._element('Button', button_text='Clear All', key='-BTN_CLEAR_ALL-'))
+	layout_obj.push()
 	layout_obj.add(ui._element('Button', button_text='Save', key='-BTN_SAVE-'))
 	layout_obj.add(ui._element('Button', button_text='Save As...', key='-BTN_SAVE_AS-'))
 	layout_obj.add(ui._element('Button', button_text='Add File...', key='-BTN_ADD_FILE-'))
+	layout_obj.add(ui._element('Button', button_text='Remove file...', key='-BTN_REMOVE_FILE-'))
 	layout_obj.add(ui._element('Button', button_text='Quit!', key='-BTN_QUIT-'))
 	layout_obj.add(ui._element('Button', button_text='Main Menu', key='-BTN_MAIN_MENU-'))
 	layout_obj.push()
 	title = pm.name
 	win = ui.child_window(layout_obj=layout_obj, title=title, run=False)
 	return win
+
+
+	
 
 
 def win_settings(pm):
@@ -308,6 +314,7 @@ def new_project(name=None, project_path=None, default_project_dir='/var/dev', ur
 
 class project_mgr():
 	def __init__(self, new=False, editor_name='idle', project_path=None, debug=False, default_project_dir='/var/dev', git_url=None, auto_load_last=True, settings=None):
+		self.backup_file = None
 		self.settings = settings
 		self.auto_load_last = auto_load_last
 		self.data_dir = os.path.join(os.path.expanduser("~"), '.project_manager')
@@ -331,6 +338,21 @@ class project_mgr():
 			else:
 				self._init()
 				self.save_settings()
+		if not os.path.exists(self.data_dir):
+			self.fs.mkdir(self.data_dir)
+
+	def track_changes(self):
+		patterns = ["new file", "modified", "deleted"]
+		l = []
+		for pattern in patterns:
+			com = f'git status | grep "{pattern}:" | cut -d ":" -f 2'
+			try:
+				for i in subprocess.check_output(com, shell=True).decode().strip().splitlines():
+					l.append(f"{pattern}:{i.strip()}")
+			except Exception as e:
+				self.log(f"Error - git status check failed! ({e})", 'error')
+		return l
+
 
 	def _init(self, path=None):
 		if path is not None:
@@ -355,6 +377,27 @@ class project_mgr():
 		self.editor = self.set_editor(editor_name=self.editor_name, cwd=self.project_path)
 		self.files = self.get_files()
 		self.name = self.git.name.replace('_', ' ').title()
+		self.tar = tar(target_dir=self.project_path, compression='gz')
+
+	def backup(self, path=None):
+		if path is None:
+			path = self.project_path
+		fname = f"{self.name.replace(' ', '_').lower()}.{self.get_backups(path=self.data_dir, ct=True)}"
+		filepath = self.tar.add_directory(target_dir=self.project_path, archive_name=fname)
+		fname = os.path.basename(filepath)
+		self.backup_file = os.path.join(self.data_dir, fname)
+		self.fs.mv(filepath, self.backup_file)
+		return 
+
+	def get_backups(self, path=None, ct=False):
+		if path is None:
+			path = self.data_dir
+		files = self.fs.find(path=path, pattern=[f"*.{self.tar.compression}*"])
+		if ct:
+			return len(files) + 1
+		else:
+			return files
+
 
 	def load_settings(self):
 		with open(self.settings_file, 'rb') as f:
