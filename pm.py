@@ -13,6 +13,9 @@ log = logger.log_msg
 ui = gui()
 default_project_dir = 'var/dev'
 
+get_git_file_adds_command = "data=\"$(git status | grep \"new file:\" | cut -d ':' -f 2)\"; data=\"${data// /}"
+
+
 def select_all(win):
 	lb = win.Rows[0][0].Rows[0][0]
 	l = [i for i in range(0, len(lb.Values))]
@@ -419,6 +422,11 @@ class project_mgr():
 		print("Adding existing repo at:", path)
 		self.project_path = path
 		self.settings = new_project()
+
+	def _get_added_files(self):
+		ret = subprocess.check_output('git status | grep "new file:" | cut -d ":" -f 2', shell=True).decode()
+		added_files = ret.replace(' ', '').strip().splitlines()
+		return added_files
 
 
 	def new(self, user=None, path=None, git_url=None):

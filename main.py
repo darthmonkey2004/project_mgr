@@ -47,6 +47,8 @@ def run(pm=None):
 			pm.git.pull()
 		elif event == '-BTN_STATUS-':
 			print(pm.git._status())
+			files = pm._get_added_files()
+			print("Added: ", files)
 			pm.git.status()
 		elif event == '-BTN_MAIN_MENU-':
 			win.close()
