@@ -95,8 +95,6 @@ def load_project(debug=True):
 		with open(settings_file, 'rb') as f:
 			data = pickle.load(f)
 			f.close()
-		print("data:", data)
-		input()
 		pm = project_mgr(debug=debug, editor_name='idle', project_path=data['project_path'])
 		return pm
 	else:

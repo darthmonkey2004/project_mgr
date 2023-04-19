@@ -487,13 +487,11 @@ class project_mgr():
 				if git_url is None:
 					old_repos = self.git.get_repositories()
 					self.git._browse_create_repo()
-					repo_name = input("Enter repo name: (blank to auto detect):")
-					if repo_name == '':
-						new_repos = self.git.get_repositories()
-						for repo in new_repos:
-							if repo not in old_repos:
-								repo_name = repo
-								break
+					new_repos = self.git.get_repositories()
+					for repo in new_repos:
+						if repo not in old_repos:
+							repo_name = repo
+							break
 					self.url = f"https://github.com/{user}/{repo_name}.git"
 				else:
 					self.url = git_url

@@ -6,26 +6,26 @@ functionality()
 #	A. TODO: add origin file/module/function 'append' to string for origination of more than just exceptions
 #		(know where a log line comes from)
 2. backup
-	#A. tarball handling:
-	#	a. tar class
-	#		I. compress
-	#		II. extract
-	B. zip
+	A. zip
 		a. ...
 		b. ...
-	C. set/create directory
+	B. Manage Backups:
+		0. Create backup manager window
+		1. Add listbox with relevant backups for pm.project_name
+		2. Sort by timestamp > filename (newest first)
+		3. Add Backup button in main.py
+		4. Add Restore button in main.py
+		5. Add Delete Backup button in main.py
+		6. Add Set Backup Path button in main.py:
+			a. ui.file_browser(browse_type='folder')
 3. vars
 	A. GITDIR
 	B. INSTALL_DIR
 	C. BACKUP_DIR
 	D. TARFILE
-4. temp_file cleanup
-	A. __PYCACHE__
-	B. *.txt
-	C. user_defined_searchPattern()
-	D. 
+4. psg_creator():
+	A. Integrate ui editor and functionality modules into project manager
 5. directory migration
-6. git push/config repo (git.py)
 
 -----------------------------
 
