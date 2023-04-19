@@ -59,16 +59,19 @@ def get_pm(auto_load=True):
 				win.close()
 			break
 		elif event == '-BUTTON_NEW_PROJECT-':
-			data = new_project()
-			name = data['name']
-			project_path = data['project_path']
-			default_project_dir = data['default_project_dir']
-			url = data['url']
-			email = data['email']
-			user = data['user']
-			token = data['token']
-			pm = project_mgr(debug=debug, editor_name='idle', project_path=project_path, default_project_dir=default_project_dir, git_url=url)
-			break
+			try:
+				data = new_project()
+				name = data['name']
+				project_path = data['project_path']
+				default_project_dir = data['default_project_dir']
+				url = data['url']
+				email = data['email']
+				user = data['user']
+				token = data['token']
+				pm = project_mgr(debug=debug, editor_name='idle', project_path=project_path, default_project_dir=default_project_dir, git_url=url)
+				break
+			except Exception as e:
+				log(f"ui.menus.get_pm(): Failed to get data from window! ({e}", 'error')
 		elif event == '-BUTTON_LOAD_PROJECT-':
 			project_path = ui.file_browser(browse_type='folder', cwd='/var/dev/')
 			pm = project_mgr(debug=debug, editor_name='idle', project_path=project_path)

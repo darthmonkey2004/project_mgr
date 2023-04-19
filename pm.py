@@ -480,7 +480,7 @@ class project_mgr():
 			if os.path.exists(path):
 				self.project_path = path
 				os.chdir(self.project_path)
-				self.git = git_mgr(path=self.project_path)
+				self.git = git_mgr(path=self.project_path, email=self.email, name=self.name, token=self.token)
 				self.url = self.git.url
 				self.name = self.git.name
 			else:
@@ -497,18 +497,18 @@ class project_mgr():
 					self.url = f"https://github.com/{user}/{repo_name}.git"
 				else:
 					self.url = git_url
-				self.git = git_mgr(url=self.url)
+				self.git = git_mgr(url=self.url, email=self.email, name=repo_name, token=self.token)
 				self.project_path = self.git.path
 				self.name = self.git.name
 		elif path is not None:
 			self.name = os.path.basename(path)
 			if not os.path.exists(path):
 				self.url = f"https://github.com/{user}/{self.name}.git"
-				self.git = git_mgr(url=self.url)
+				self.git = git_mgr(url=self.url, email=self.email, name=repo_name, token=self.token)
 				self.project_path = self.git.path
 			else:
 				try:
-					self.git = git_mgr(path=self.project_path)
+					self.git = git_mgr(path=self.project_path, email=self.email, name=self.name, token=self.token)
 				except Exception as e:
 					txt = f"project_mgr.main.new():Error - Couldn't init git at {self.project_path}!"
 					self.log(txt, 'error')
