@@ -89,20 +89,22 @@ def get_pm(auto_load=True):
 	return pm
 
 def load_project(debug=True):
-	try:
-		settings_file = 'settings.dat'
-		data = None
-		if os.path.exists(settings_file):
-			with open(settings_file, 'rb') as f:
-				data = pickle.load(f)
-				f.close()
-		else:
-			log(f"menus.load_settings():Error - no settings file found ({settings_file})!", 'error')
+	settings_file = 'settings.dat'
+	data = None
+	if os.path.exists(settings_file):
+		with open(settings_file, 'rb') as f:
+			data = pickle.load(f)
+			f.close()
+		print("data:", data)
+		input()
 		pm = project_mgr(debug=debug, editor_name='idle', project_path=data['project_path'])
 		return pm
-	except Exception as e:
-		log(f"ui.menus.load_project():Error - {e}", 'error')
+	else:
+		log(f"menus.load_settings():Error - no settings file found ({settings_file})!", 'error')
 		return None
+	#except Exception as e:
+	#	log(f"ui.menus.load_project():Error - {e}", 'error')
+	#	return None
 
 def save_settings(pm):
 	settings = pm.settings
