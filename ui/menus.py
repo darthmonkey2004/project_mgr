@@ -1,8 +1,8 @@
 import keyring
-from psg_creator.gui import *
-from psg_creator.classes import *
+from project_manager.psg_creator.gui import *
+from project_manager.psg_creator.classes import *
 from helper_utils.git import get_repositories
-from pm import *
+from project_manager.pm import *
 ui = gui()
 default_project_dir = 'var/dev'
 
@@ -125,7 +125,7 @@ def browse_new_repo():
 	url = "https://github.com/new"
 	ret = subprocess.check_output(f"xdg-open \"{url}\"", shell=True).decode().strip()
 	if ret != '':
-		print("Error openin browser:", ret)
+		print("Error opening browser:", ret)
 
 def win_new_project():
 	layout_obj = layout()

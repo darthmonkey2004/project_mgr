@@ -7,11 +7,13 @@ from helper_utils.log import logger
 from helper_utils.filesystem import *
 from psg_creator.classes import *
 from psg_creator.gui import *
+from psg_creator.creator import ui_creator
 from helper_utils.tar import *
 logfile = os.path.join(os.path.expanduser("~"), '.project_manager', 'log.txt')
 #log = logger().log_msg
 log = logger.log_msg
-ui = gui()
+creator = ui_creator()
+ui = creator.ui
 default_project_dir = 'var/dev'
 
 get_git_file_adds_command = "data=\"$(git status | grep \"new file:\" | cut -d ':' -f 2)\"; data=\"${data// /}"
@@ -33,47 +35,6 @@ def clear_all(win):
 	lb.widget.selection_clear(first=s, last=e)
 	return []
 
-def win_main_menu():
-	layout_obj = layout()
-	layout_obj.add(ui._element('Button', button_text='New Project', expand_x=True, expand_y=True, key='-BUTTON_NEW_PROJECT-'))
-	layout_obj.push()
-	layout_obj.add(ui._element('Button', button_text='Load Project...', expand_x=True, expand_y=True, key='-BUTTON_LOAD_PROJECT-'))
-	layout_obj.push()
-	layout_obj.add(ui._element('Button', button_text='Settings', expand_x=True, expand_y=True, key='-BUTTON_SETTINGS-'))
-	layout_obj.push()
-	layout_obj.add(ui._element('Checkbox', text='Auto-Load Last Project', key='-AUTO_LOAD-'))
-	layout_obj.add(ui._element('Checkbox', text='Debug Mode (Verbose)', key='-DEBUG-'))
-	layout_obj.push()
-	win = ui.child_window(layout_obj=layout_obj, title='Project Manager: Main Menu', run=False)
-	return win
-
-def win_project_master(pm=None):
-	if pm is None:
-		pm = get_pm()
-	layout_obj = layout()
-	layout_obj.add(ui._element('Listbox', expand_y=True, select_mode='multiple', values=pm.files, key='-PROJECT_FILES-'))
-	layout_obj.push()
-	layout_obj.add(ui._element('Button', button_text='Push', key='-BTN_PUSH-'))
-	layout_obj.add(ui._element('Button', button_text='Pull', key='-BTN_PULL-'))
-	layout_obj.add(ui._element('Button', button_text='Status', key='-BTN_STATUS-'))
-	layout_obj.add(ui._element('Button', button_text='Open in Editor', key='-BTN_EDIT-'))
-	layout_obj.add(ui._element('Button', button_text='Select All', key='-BTN_SELECT_ALL-'))
-	layout_obj.add(ui._element('Button', button_text='Clear All', key='-BTN_CLEAR_ALL-'))
-	layout_obj.push()
-	layout_obj.add(ui._element('Button', button_text='Save', key='-BTN_SAVE-'))
-	layout_obj.add(ui._element('Button', button_text='Save As...', key='-BTN_SAVE_AS-'))
-	layout_obj.add(ui._element('Button', button_text='Add File...', key='-BTN_ADD_FILE-'))
-	layout_obj.add(ui._element('Button', button_text='Remove file...', key='-BTN_REMOVE_FILE-'))
-	layout_obj.add(ui._element('Button', button_text='Quit!', key='-BTN_QUIT-'))
-	layout_obj.add(ui._element('Button', button_text='Main Menu', key='-BTN_MAIN_MENU-'))
-	layout_obj.push()
-	title = pm.name
-	win = ui.child_window(layout_obj=layout_obj, title=title, run=False)
-	return win
-
-
-	
-
 
 def win_settings(pm):
 	layout_obj = layout()
@@ -92,9 +53,9 @@ def add_file(pm, filepath):
 		fname = os.path.basename(filepath)
 		newname = os.path.join(pm.project_path, fname)
 		pm.fs.write(data=data, filepath=newname)
-		log(f"ui.menus.add_file():Added file to project ({filepath} > {newname})!", 'info')
+		log(f"pm.add_file():Added file to project ({filepath} > {newname})!", 'info')
 	else:
-		log(f"ui.menus.add_file():Error - File doesn't exist ({filepath})!", 'error')
+		log(f"pm.add_file():Error - File doesn't exist ({filepath})!", 'error')
 
 
 def get_pm(auto_load=True):
@@ -152,11 +113,11 @@ def load_project(debug=True):
 				data = pickle.load(f)
 				f.close()
 		else:
-			log(f"menus.load_settings():Error - no settings file found ({settings_file})!", 'error')
+			log(f"pm.load_settings():Error - no settings file found ({settings_file})!", 'error')
 		pm = project_mgr(debug=debug, editor_name='idle', project_path=data['project_path'])
 		return pm
 	except Exception as e:
-		log(f"ui.menus.load_project():Error - {e}", 'error')
+		log(f"pm.load_project():Error - {e}", 'error')
 		return None
 
 def save_settings(pm):
@@ -211,8 +172,6 @@ def win_new_project():
 	layout_obj.add(ui._element('Text', text='Token:', key='-TEXT_TOKEN-'))
 	layout_obj.add(ui._element('Input', key='-TOKEN-'))
 	layout_obj.push()
-	layout_obj.add(ui._element('Button', button_text='Ok', key='-OK-'))
-	layout_obj.add(ui._element('Button', button_text='Cancel', key='-CANCEL-'))
 	layout_obj.add(ui._element('Button', button_text='Break', key='-BREAK-'))
 	layout_obj.push()
 	win = ui.child_window(layout_obj=layout_obj, title='Add Menu Item', run=False)
@@ -313,7 +272,11 @@ def new_project(name=None, project_path=None, default_project_dir='/var/dev', ur
 
 
 class project_mgr():
-	def __init__(self, new=False, editor_name='idle', project_path=None, debug=False, default_project_dir='/var/dev', git_url=None, auto_load_last=True, settings=None):
+	def __init__(self, new=False, editor_name='idle', project_path=None, debug=False, default_project_dir='/var/dev', git_url=None, auto_load_last=True, settings=None, run_preview=False):
+		self.run_preview = run_preview
+		self.ui_file = None
+		self.win = None
+		self.creator = creator
 		self.backup_file = None
 		self.settings = settings
 		self.auto_load_last = auto_load_last
@@ -327,6 +290,7 @@ class project_mgr():
 		self.editor_name = editor_name
 		self.files = []
 		self.settings_file = os.path.join(self.project_path, 'settings.dat')
+		self.selected = None
 		self.ignore = ['__init__', '.git', 'README']
 		if new:
 			self.new(path=self.project_path, git_url=self.url)
@@ -340,6 +304,29 @@ class project_mgr():
 				self.save_settings()
 		if not os.path.exists(self.data_dir):
 			self.fs.mkdir(self.data_dir)
+		fname = f"{self.name}.ui.dat"
+		self.ui_file = os.path.join(self.project_path, fname)
+
+	def load_ui_data(self, ui_file=None, path=None, run=False):
+		self.run_preview = run
+		if ui_file is None:
+			if path is None:
+				path = self.project_path
+			fname = f"{self.name}.ui.dat"
+			self.ui_file = os.path.join(self.project_path, fname)
+		else:
+			self.ui_file = ui_file
+		if os.path.exists(self.ui_file):
+			data = self.creator.load_ui(filepath=self.ui_file, run=self.run_preview)
+			self.preview_data = data
+			self.win['-ELEMENTS_LIST-'].update(list(data))
+			self.creator.update_preview_img(data=data)
+			self.win['-UI_CREATOR_TAB-'].Select()
+			self.log(f"pm.load_ui_data(): Loaded ui: ({self.ui_file})", 'info')
+			return data
+		else:
+			self.log(f"pm.load_ui_data(): ERROR - Failed to load ui: ({self.ui_file})!", 'error')
+			return None
 
 	def track_changes(self):
 		patterns = ["new file", "modified", "deleted"]
@@ -367,7 +354,7 @@ class project_mgr():
 		else:
 			if self.url is None or self.new:
 				if self.settings is None:
-					print("self.settings:", self.settings)
+					#print("self.settings:", self.settings)
 					self.settings = new_project()
 				self.git = git_mgr(init=True, path=self.settings['project_path'])
 			else:
